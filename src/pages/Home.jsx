@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import {
   Compass, Kanban, BellRing, CalendarDays, LineChart, Sparkles, ShieldCheck,
-  Moon, Sun, ArrowRight, CalendarClock, MapPin,
+  Moon, Sun, ArrowRight, CalendarClock, MapPin, Target, Ghost, Wrench, FileQuestion,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
@@ -12,13 +12,22 @@ const FEATURES = [
   { icon: CalendarDays, title: 'Interview calendar', text: 'Log every round with date, interviewer and prep notes, then see it all on a monthly calendar.' },
   { icon: LineChart, title: 'Insights that matter', text: 'Weekly activity, response rate, offer rate and the stage where applications stall the longest.' },
   { icon: Sparkles, title: 'AI interview prep', text: 'Paste a job description and get a cover letter draft, likely questions and a skills match.' },
+  { icon: Target, title: 'Resume match score', text: 'Save your resume once. Every job gets a match score with the exact skills you have and the ones you are missing. No paid AI involved.' },
+  { icon: Ghost, title: 'Ghost detector', text: 'Jobtrail notices when an application goes quiet for longer than normal for its stage, and flags it before you forget.' },
+  { icon: Wrench, title: 'Skill-gap insights', text: 'See which skills keep showing up in jobs you apply to but not on your resume, so you know what to learn next.' },
   { icon: ShieldCheck, title: 'Private by design', text: 'Hashed passwords, token-based sessions and rate-limited logins. Only you can see your data.' },
+];
+
+const PROBLEMS = [
+  { icon: FileQuestion, bad: 'Applying blindly', good: 'Know your fit before you apply', text: 'A resume-to-job match score shows which required skills you already have and which are missing.' },
+  { icon: Ghost, bad: 'Being ghosted', good: 'Follow up at the right time', text: 'Quiet applications are flagged automatically and the follow-up coach drafts the email for you.' },
+  { icon: LineChart, bad: 'Never learning what works', good: 'See what actually gets replies', text: 'Insights compare reply rates for strong and weak matches, and rank the skills you should learn next.' },
 ];
 
 const STEPS = [
   { n: '1', title: 'Add what you applied to', text: 'Company, role, salary, link and notes, in under 20 seconds per job.' },
-  { n: '2', title: 'Move it as things progress', text: 'Drag cards across stages, schedule interviews and set follow-up dates.' },
-  { n: '3', title: 'Learn what is working', text: 'Use the dashboard to spot slow stages and double down on what gets replies.' },
+  { n: '2', title: 'Check your fit and follow up', text: 'Get a match score for each job, drag cards across stages and send the drafted follow-up when one goes quiet.' },
+  { n: '3', title: 'Learn what is working', text: 'Check match scores, ghosted applications and skill gaps, then double down on what gets replies.' },
 ];
 
 const MiniCard = ({ company, role, tone, children, className = '' }) => (
@@ -51,9 +60,10 @@ function BoardPreview() {
           <Col title="Applied" dot="bg-sky-500">
             <MiniCard company="Northwind Labs" role="Frontend Developer" tone="bg-sky-500">
               <span className="mt-1.5 flex items-center gap-1 text-[10px] text-slate-400"><MapPin size={10} /> Bengaluru</span>
+              <span className="mt-1.5 flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"><Target size={10} /> 82% match</span>
             </MiniCard>
             <MiniCard company="Brightpath" role="React Engineer" tone="bg-sky-500">
-              <span className="mt-1.5 flex items-center gap-1 rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-500/15 dark:text-rose-300"><BellRing size={10} /> Overdue 2d</span>
+              <span className="mt-1.5 flex items-center gap-1 rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-500/15 dark:text-rose-300"><Ghost size={10} /> Quiet for 9d</span>
             </MiniCard>
           </Col>
           <Col title="Interview" dot="bg-amber-500">
@@ -116,6 +126,23 @@ export default function Home() {
             <p className="mt-4 text-sm text-slate-500">Free to use. No credit card.</p>
           </div>
           <BoardPreview />
+        </div>
+      </section>
+
+      <section className="border-y border-slate-200 bg-white py-14 dark:border-ink-700 dark:bg-ink-900">
+        <div className="mx-auto max-w-6xl px-4">
+          <h2 className="text-3xl font-extrabold tracking-tight">Job searching has three big problems</h2>
+          <p className="mt-2 max-w-xl text-slate-600 dark:text-slate-400">Most trackers only store your applications. Jobtrail also helps you act on them.</p>
+          <div className="mt-8 grid gap-4 md:grid-cols-3">
+            {PROBLEMS.map(({ icon: Icon, bad, good, text }) => (
+              <div key={bad} className="rounded-xl border border-slate-200 p-5 dark:border-ink-700">
+                <div className="mb-3 grid h-10 w-10 place-items-center rounded-lg bg-teal-600/10 text-teal-600 dark:text-teal-400"><Icon size={20} /></div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-rose-500 line-through decoration-rose-400/60">{bad}</p>
+                <h3 className="mt-1 font-extrabold">{good}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-600 dark:text-slate-400">{text}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 

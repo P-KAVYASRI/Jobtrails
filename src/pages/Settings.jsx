@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Loader2, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api, { errMsg } from '../api';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -10,6 +10,24 @@ export default function Settings() {
   const [pw, setPw] = useState({ currentPassword: '', newPassword: '' });
   const [delPw, setDelPw] = useState('');
   const [busy, setBusy] = useState('');
+  const [resume, setResume] = useState('');
+  const [skills, setSkills] = useState([]);
+
+  useEffect(() => {
+    api.get('/resume').then((r) => { setResume(r.data.resume); setSkills(r.data.skills); }).catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (window.location.hash === '#resume') document.getElementById('resume')?.scrollIntoView({ block: 'center' });
+  }, []);
+
+  const saveResume = (e) => {
+    e.preventDefault();
+    run('resume', async () => {
+      const { data } = await api.put('/resume', { resume });
+      setSkills(data.skills);
+      toast.success(data.rescored ? `Resume saved. ${data.rescored} application${data.rescored > 1 ? 's' : ''} re-scored.` : 'Resume saved');
+    });
+  };
 
   const run = async (key, fn) => {
     setBusy(key);
@@ -64,6 +82,22 @@ export default function Settings() {
         </label>
         <p className="text-sm text-slate-500">Email: {user.email}</p>
         <button className="btn-primary" disabled={busy === 'profile'}><Spin k="profile" /> Save profile</button>
+      </form>
+
+      <form id="resume" onSubmit={saveResume} className="panel space-y-3 scroll-mt-24 p-5">
+        <h2 className="flex items-center gap-2 font-bold"><FileText size={17} className="text-teal-600" /> Resume</h2>
+        <p className="text-sm text-slate-500">Paste your resume as plain text. Jobtrail uses it to score how well each job matches you. It is only used for your own match scores and AI drafts.</p>
+        <textarea rows={10} className="input resize-y" maxLength={12000} value={resume} onChange={(e) => setResume(e.target.value)} placeholder="Paste your resume text here: skills, projects, experience…" />
+        <div className="flex items-center justify-between text-xs text-slate-400">
+          <span>{resume.length.toLocaleString()} / 12,000</span>
+          <span>{skills.length ? `${skills.length} skills detected` : 'No skills detected yet'}</span>
+        </div>
+        {skills.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {skills.map((k) => <span key={k} className="rounded-full bg-teal-600/10 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:text-teal-300">{k}</span>)}
+          </div>
+        )}
+        <button className="btn-primary" disabled={busy === 'resume'}><Spin k="resume" /> Save resume</button>
       </form>
 
       <div className="panel flex items-center justify-between gap-4 p-5">

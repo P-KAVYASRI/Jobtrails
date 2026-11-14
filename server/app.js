@@ -9,6 +9,8 @@ import applicationRoutes from './routes/applications.js';
 import statsRoutes from './routes/stats.js';
 import aiRoutes from './routes/ai.js';
 import cronRoutes from './routes/cron.js';
+import resumeRoutes from './routes/resume.js';
+import matchRoutes from './routes/match.js';
 
 const app = express();
 app.set('trust proxy', 1); // needed behind Vercel / Vite proxy so rate limiting sees real IPs
@@ -39,6 +41,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/applications', applicationRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/resume', resumeRoutes);
+app.use('/api/match', matchRoutes);
 app.use('/api/cron', cronRoutes);
 
 app.use('/api', (req, res) => res.status(404).json({ message: 'Route not found.' }));

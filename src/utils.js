@@ -1,3 +1,4 @@
+import { ghostInfo, GHOST_LABEL } from '../shared/ghost.js';
 const DAY = 86400000;
 
 export const fmtDate = (d) =>
@@ -59,3 +60,28 @@ export const nextInterview = (app) =>
   (app.interviews || [])
     .filter((i) => i.date && new Date(i.date) >= new Date())
     .sort((a, b) => new Date(a.date) - new Date(b.date))[0] || null;
+
+// ---------- v3: ghost detector + match score ----------
+export { ghostInfo };
+
+export const GHOST_STYLE = {
+  nudge: 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300',
+  ghosted: 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300',
+};
+
+// null when the application is fine, otherwise { level, text }
+export function ghostChip(app) {
+  const g = ghostInfo(app);
+  if (!g || g.level === 'ok') return null;
+  return { level: g.level, text: GHOST_LABEL[g.level](g.daysQuiet) };
+}
+
+export const matchStyle = (score) =>
+  score >= 70
+    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300'
+    : score >= 40
+      ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300'
+      : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300';
+
+// ?tab=followup in the URL -> modal tab name
+export const TAB_FROM_PARAM = { details: 'Details', interviews: 'Interviews', match: 'Match', followup: 'Follow-up', ai: 'AI assistant' };

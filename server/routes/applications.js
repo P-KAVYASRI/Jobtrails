@@ -2,6 +2,10 @@ import { Router } from 'express';
 import { z } from 'zod';
 import Application, { STATUSES, PRIORITIES, INTERVIEW_TYPES } from '../models/Application.js';
 import Activity from '../models/Activity.js';
+import User from '../models/User.js';
+import { applyMatch } from '../services/match.js';
+import { ghostInfo } from '../../shared/ghost.js';
+import { buildFollowUpDraft } from '../../shared/followup.js';
 import auth from '../middleware/auth.js';
 import wrap from '../middleware/wrap.js';
 
@@ -62,7 +66,11 @@ router.get('/', wrap(async (req, res) => {
 router.post('/', wrap(async (req, res) => {
   const data = clean(appSchema.parse(req.body));
   const status = data.status || 'Applied';
-  const app = await Application.create({ ...data, status, userId: req.userId, order: await nextOrder(req.userId, status) });
+  // an application logged with a past "applied on" date starts its stage clock then, not today
+  const stageStart = data.appliedDate && new Date(data.appliedDate) < new Date() ? new Date(data.appliedDate) : new Date();
+  const app = new Application({ ...data, status, statusChangedAt: stageStart, userId: req.userId, order: await nextOrder(req.userId, status) });
+  applyMatch(app, (await User.findById(req.userId).select('resume'))?.resume);
+  await app.save();
   await logMove(app, null, status);
   res.status(201).json({ application: app });
 }));
@@ -103,6 +111,36 @@ router.put('/:id', wrap(async (req, res) => {
     app.order = await nextOrder(req.userId, data.status);
     await logMove(app, prev, data.status);
   }
+  // correcting the applied date of an application still in Applied also moves its stage clock
+  if (data.appliedDate && app.status === 'Applied' && !(data.status && data.status !== prev) && app.statusChangedAt > app.appliedDate) {
+    app.statusChangedAt = app.appliedDate;
+  }
+  if (data.jobDescription !== undefined) applyMatch(app, (await User.findById(req.userId).select('resume'))?.resume);
+  await app.save();
+  res.json({ application: app });
+}));
+
+// follow-up coach: ghost status + a ready-to-send draft
+router.get('/:id/followup', wrap(async (req, res) => {
+  const app = await Application.findOne({ _id: req.params.id, userId: req.userId });
+  if (!app) return res.status(404).json({ message: 'Application not found.' });
+  const user = await User.findById(req.userId).select('name');
+  const info = ghostInfo(app);
+  res.json({
+    ghost: info && { level: info.level, daysQuiet: info.daysQuiet, since: info.since },
+    nudgeCount: app.nudgeCount || 0,
+    lastNudgedAt: app.lastNudgedAt,
+    draft: info ? buildFollowUpDraft(app, user || {}) : null,
+  });
+}));
+
+// user sent the follow-up: reset the quiet timer and schedule the next check-in in a week
+router.post('/:id/followup/sent', wrap(async (req, res) => {
+  const app = await Application.findOne({ _id: req.params.id, userId: req.userId });
+  if (!app) return res.status(404).json({ message: 'Application not found.' });
+  app.lastNudgedAt = new Date();
+  app.nudgeCount = (app.nudgeCount || 0) + 1;
+  app.followUpDate = new Date(Date.now() + 7 * 86400000);
   await app.save();
   res.json({ application: app });
 }));

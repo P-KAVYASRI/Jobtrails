@@ -4,6 +4,8 @@ import Application, { STATUSES } from '../models/Application.js';
 import Activity from '../models/Activity.js';
 import auth from '../middleware/auth.js';
 import wrap from '../middleware/wrap.js';
+import { ghostInfo } from '../../shared/ghost.js';
+import { buildMatchInsight } from '../services/insights.js';
 
 const router = Router();
 router.use(auth);
@@ -56,6 +58,24 @@ router.get('/', wrap(async (req, res) => {
     ]),
   ]);
 
+  // v3: ghost radar, match vs replies, skill gaps (computed in JS over a lean projection)
+  const all = await Application.find({ userId }).select(
+    'company role status appliedDate statusChangedAt lastNudgedAt nudgeCount interviews.date matchScore missingSkills'
+  ).lean();
+  const ghosts = all
+    .map((a) => ({ a, g: ghostInfo(a, now) }))
+    .filter(({ g }) => g && g.level !== 'ok')
+    .sort((x, y) => y.g.daysQuiet - x.g.daysQuiet)
+    .slice(0, 8)
+    .map(({ a, g }) => ({ _id: a._id, company: a.company, role: a.role, status: a.status, level: g.level, daysQuiet: g.daysQuiet }));
+  const ghostTotal = all.filter((a) => { const g = ghostInfo(a, now); return g && g.level !== 'ok'; }).length;
+  const matchInsight = buildMatchInsight(all);
+  const skillGaps = (() => {
+    const tally = new Map();
+    all.forEach((a) => (a.missingSkills || []).forEach((k) => tally.set(k, (tally.get(k) || 0) + 1)));
+    return [...tally].sort((x, y) => y[1] - x[1] || x[0].localeCompare(y[0])).slice(0, 8).map(([skill, count]) => ({ skill, count }));
+  })();
+
   const counts = Object.fromEntries(STATUSES.map((s) => [s, 0]));
   byStatus.forEach((b) => (counts[b._id] = b.count));
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
@@ -77,6 +97,10 @@ router.get('/', wrap(async (req, res) => {
     followUps,
     recent,
     interviews,
+    ghosts,
+    ghostTotal,
+    matchInsight,
+    skillGaps,
   });
 }));
 

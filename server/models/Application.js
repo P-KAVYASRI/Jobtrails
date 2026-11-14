@@ -33,6 +33,13 @@ const applicationSchema = new mongoose.Schema(
     interviews: { type: [interviewSchema], default: [] },
     order: { type: Number, default: 0 }, // position inside its Kanban column
     statusChangedAt: { type: Date, default: Date.now },
+    // resume match (computed on save, see server/services/match.js)
+    matchScore: { type: Number, default: null },
+    matchedSkills: { type: [String], default: [] },
+    missingSkills: { type: [String], default: [] },
+    // follow-up coach
+    lastNudgedAt: { type: Date, default: null },
+    nudgeCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

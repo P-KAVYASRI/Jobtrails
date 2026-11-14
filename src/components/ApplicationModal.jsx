@@ -4,6 +4,8 @@ import toast from 'react-hot-toast';
 import api, { errMsg } from '../api';
 import { STATUSES, PRIORITIES, STATUS_STYLE, INTERVIEW_TYPES } from '../constants';
 import { toInputDate, toInputDateTime, timeAgo } from '../utils';
+import MatchPanel from './MatchPanel.jsx';
+import FollowUpPanel from './FollowUpPanel.jsx';
 
 const Field = ({ label, children, className = '' }) => (
   <label className={`block text-xs font-semibold text-slate-600 dark:text-slate-400 ${className}`}>
@@ -20,9 +22,9 @@ const AI_TASKS = [
   { id: 'match_summary', label: 'Skills match' },
 ];
 
-export default function ApplicationModal({ app, defaultStatus, onClose, onSaved, onDeleted }) {
+export default function ApplicationModal({ app, defaultStatus, initialTab, onClose, onSaved, onDeleted, onPatched }) {
   const editing = !!app;
-  const [tab, setTab] = useState('Details');
+  const [tab, setTab] = useState(initialTab || 'Details');
   const [form, setForm] = useState(() => ({
     company: app?.company || '',
     role: app?.role || '',
@@ -117,10 +119,10 @@ export default function ApplicationModal({ app, defaultStatus, onClose, onSaved,
           <button type="button" onClick={onClose} className="rounded-lg p-1.5 hover:bg-slate-100 dark:hover:bg-ink-800" aria-label="Close"><X size={18} /></button>
         </div>
 
-        <div className="flex gap-1 border-b border-slate-200 px-4 dark:border-ink-700">
-          {['Details', 'Interviews', 'AI assistant'].map((t) => (
+        <div className="flex gap-1 overflow-x-auto border-b border-slate-200 px-4 dark:border-ink-700">
+          {['Details', 'Interviews', 'Match', 'Follow-up', 'AI assistant'].map((t) => (
             <button key={t} type="button" onClick={() => setTab(t)}
-              className={`-mb-px border-b-2 px-3 py-2.5 text-sm font-semibold transition ${tab === t ? 'border-teal-600 text-teal-700 dark:text-teal-300' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>
+              className={`-mb-px whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-semibold transition ${tab === t ? 'border-teal-600 text-teal-700 dark:text-teal-300' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}>
               {t}{t === 'Interviews' && form.interviews.length ? ` (${form.interviews.length})` : ''}
             </button>
           ))}
@@ -180,6 +182,16 @@ export default function ApplicationModal({ app, defaultStatus, onClose, onSaved,
               ))}
               <button type="button" onClick={addRound} className="btn-ghost w-full"><Plus size={15} /> Add interview round</button>
             </>
+          )}
+
+          {tab === 'Match' && (
+            <MatchPanel jobDescription={form.jobDescription} onChange={set('jobDescription')} />
+          )}
+
+          {tab === 'Follow-up' && (
+            editing
+              ? <FollowUpPanel app={app} onPatched={(a) => { setForm((f) => ({ ...f, followUpDate: toInputDate(a.followUpDate) })); onPatched?.(a); }} />
+              : <p className="py-8 text-center text-sm text-slate-400">Save the application first. The follow-up coach starts watching it right away.</p>
           )}
 
           {tab === 'AI assistant' && (

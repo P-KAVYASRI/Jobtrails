@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import auth from '../middleware/auth.js';
 import wrap from '../middleware/wrap.js';
+import User from '../models/User.js';
 
 const router = Router();
 router.use(auth);
@@ -61,6 +62,7 @@ router.post('/', wrap(async (req, res) => {
     return res.status(503).json({ message: 'AI assistant is not set up. Add GEMINI_API_KEY (free) to your environment variables.' });
   }
   const d = schema.parse(req.body);
+  if (!d.background?.trim()) d.background = ((await User.findById(req.userId).select('resume'))?.resume || '').slice(0, 3000);
   const prompt = [
     `Company: ${d.company || 'n/a'}`,
     `Role: ${d.role || 'n/a'}`,
